@@ -1,0 +1,6 @@
+com/siteminder/email/integration/EmailServiceApplicationIT.class
+com/siteminder/email/repo/EmailStoreRepositoryTest.class
+com/siteminder/email/utils/EmailValidatorTest.class
+com/siteminder/email/service/SQSPubSubTest.class
+com/siteminder/email/service/EmailSenderServiceTest.class
+com/siteminder/email/utils/TestUtils.class

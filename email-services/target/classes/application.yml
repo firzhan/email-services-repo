@@ -1,0 +1,52 @@
+server:
+  port: 9001
+  
+
+cloud:
+  aws:
+    credentials:
+      access-key: AKIAIX5JRIOL5AR4TNOA
+      secret-key: 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
+      useDefaultAwsCredentialsChain: true
+    region:
+      static: us-east-2
+      auto: false
+    stack:
+      auto: false
+    end-point:
+      uri: https://sqs.us-east-2.amazonaws.com/778103919393/spring-boot-sqs
+    queue:
+      name: spring-boot-sqs
+    dlc:
+      uri: https://sqs.us-east-2.amazonaws.com/778103919393/spring-boot-sqs-dlc
+
+spring:
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:email_service;DB_CLOSE_ON_EXIT=FALSE
+    username: admin
+    password:
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: create-drop
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+email-system-sender:
+  address: firzhan007@gmail.com
+  name: mailers
+
+resilience4j:
+  circuit-breaker:
+    failure-rate-threshold: 50
+    duration-in-open-state-ms: 2000
+    ring-buffer-size-half-open-state: 10
+    ring-buffer-size-closed-state: 100
+  retry:
+    max-attempts: 2
+    wait-duration-ms: 500
+
+
