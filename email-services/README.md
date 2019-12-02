@@ -23,7 +23,7 @@ This app can be tried out at the following [URL](http://ec2-3-15-184-85.us-east-
 ## Local Set Up
 
 As a prerequisite, an AWS account is required. Afterwards, we have to create 3 different Simple Queue Services (SQS).
-
+These queue names are configurable on [application.yml] (https://github.com/firzhan/email-services-repo/blob/master/email-services/src/main/resources/application.yml) file.
 - MAIL_PROD_QUEUE - For the production purpose
 - MAIL_UAT_QUEUE - Integration Testing Queue
 - MAIL_DLC_QUEUE - Dead Letter Channel Queue.
@@ -35,6 +35,8 @@ Those files have to be placed under ~/.aws directory.
 - [~/.aws/config](https://github.com/firzhan/email-services-repo/blob/master/.aws/config) - Holds the configuration information
 
 Afterwards, the code could be checked out from following [location](https://github.com/firzhan/email-services-repo/tree/master/email-services).
+
+Before preceding with building the source, [application.yml] (https://github.com/firzhan/email-services-repo/blob/master/email-services/src/main/resources/application.yml) file should be updated with the relevant information such as information on queues, credentials for mail service providers etc ....
 
 The code could be built using the ```mvn clean install``` command.
 
