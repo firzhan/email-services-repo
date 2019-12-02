@@ -16,6 +16,7 @@ moved to a DLC channel.
 
 This app can be tried out at the following [URL](http://ec2-3-15-184-85.us-east-2.compute.amazonaws.com:9001/swagger-ui.html).
 
+***http://ec2-3-15-184-85.us-east-2.compute.amazonaws.com:9001/swagger-ui.html***
 #### Note :- Before trying out with the code, users should have been registered at the Mail Service Providrs side.
 
 
