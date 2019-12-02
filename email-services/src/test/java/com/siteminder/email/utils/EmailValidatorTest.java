@@ -4,11 +4,19 @@ import com.siteminder.email.model.request.EmailAddress;
 import com.siteminder.email.model.request.InboundEmailMsg;
 import com.siteminder.email.util.EmailServiceUtils;
 import org.junit.Assert;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Since the javax validation is used for Email validation, this test cases
+ * have become obsolete.
+ */
+
+@Disabled
+@Deprecated
 public class EmailValidatorTest {
 
     @Test
@@ -20,7 +28,7 @@ public class EmailValidatorTest {
         toList.add(to);
         inboundEmailMsg.setTo(toList);
 
-        Assert.assertEquals(EmailServiceUtils.isValidEmail(inboundEmailMsg), false);
+        Assert.assertFalse(EmailServiceUtils.isValidEmail(inboundEmailMsg));
     }
 
     @Test
@@ -32,14 +40,13 @@ public class EmailValidatorTest {
         toList.add(to);
         inboundEmailMsg.setTo(toList);
 
-        Assert.assertEquals(EmailServiceUtils.isValidEmail(inboundEmailMsg),
-                true);
+        Assert.assertTrue(EmailServiceUtils.isValidEmail(inboundEmailMsg));
     }
 
     @Test
     public void GivenNullEmail_WhenValidated_ThenIsInvalid() {
         InboundEmailMsg inboundEmailMsg = new InboundEmailMsg();
-        Assert.assertEquals(EmailServiceUtils.isValidEmail(inboundEmailMsg), false);
+        Assert.assertFalse(EmailServiceUtils.isValidEmail(inboundEmailMsg));
     }
 
     @Test
@@ -49,14 +56,14 @@ public class EmailValidatorTest {
         List<EmailAddress> toList = new ArrayList<>();
         toList.add(to);
         inboundEmailMsg.setTo(toList);
-        Assert.assertEquals(EmailServiceUtils.isValidEmail(inboundEmailMsg), false);
+        Assert.assertFalse(EmailServiceUtils.isValidEmail(inboundEmailMsg));
 
         toList.clear();
 
         to = new EmailAddress("abc@gm", "test2");
         toList.add(to);
         inboundEmailMsg.setTo(toList);
-        Assert.assertEquals(EmailServiceUtils.isValidEmail(inboundEmailMsg), false);
+        Assert.assertFalse(EmailServiceUtils.isValidEmail(inboundEmailMsg));
     }
 
 }
