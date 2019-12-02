@@ -16,10 +16,10 @@ moved to a DLC channel.
 
 This app can be tried out at the following [URL](http://ec2-3-15-184-85.us-east-2.compute.amazonaws.com:9001/swagger-ui.html).
 
-####Note
+#### Note :- Before trying out with the code, users should have been registered at the Mail Service Providrs side.
 
 
-##Local Set Up
+## Local Set Up
 
 As a prerequisite, an AWS account is required. Afterwards, we have to create 3 different Simple Queue Services (SQS).
 
@@ -42,7 +42,7 @@ The integration test could be done by executing the command ```mvn verify -Pinte
 Eventually the application could be run either as executing the JAR inside the
 target directory ```java -jar target/email-services-1.0.jar```or by simply running the command ```mvn spring-boot:run```
 
-##Design
+## Design
 
 This service is implemented using Spring Boot framework. The users would be able to
 try it out via the swagger UI exposed over the link provided above.
@@ -52,6 +52,7 @@ ActiveMQ based Simple Queue Service messaging infrastructure. The service uses
 the H2 database as the persistence storage and this can be easily replaced with
 a desired RDS. The below diagram details the entire solution design of the system.
 
+![](https://github.com/firzhan/email-services-repo/blob/master/solution.png "Logo Title Text 1")
 
 
 - Once a new request reaches the services, it persists the message in the database.
@@ -64,19 +65,25 @@ mail generation rate is exponentially high, we could go for Kafka as well.
 
 This architecture could be horizontally scaled as well. 
 
-##REST API.
+## REST API.
 
 This service exposes couple of APIs. The real requests that I used to test would be sent in a separate email.
 
-###API POST email/submit
+### API POST email/submit
 
 - Request is submitted as a json body to perform the mail sending operation.
 - In order to the mail sending to be successful, the intended recipients( To, CC and BCC) should have been registered 
   and verified over their email addresses. Some service providers have the prerequisite of the domain to be verified as 
   well.
   
-#####Request
- 
+##### Request
+
+- **to** - (**Mandatory Field**). Array of registered users whom are we addressing directly.
+- **subject** - (**Mandatory Field**). Subject of the mail.
+- **content** - (**Mandatory Field**). Plain text content of the mail.
+- **cc** -  Array of registered users whom are we going to **CC** in the mail.
+- **bcc** - Array of registered users whom are we going to **BCC** in the mail.
+
 ```
     curl -X POST \
     http://localhost:9001/email/submit \
@@ -84,11 +91,19 @@ This service exposes couple of APIs. The real requests that I used to test would
     -H 'Content-Type: application/json' \
     -d '{
          "to": [{"id": "xxx@xxx.com", "name":"xxx"}, {"id": "test.user3@xxxx.xxx", "name":"xxxxx"}],
+          "cc": [{"id": "test.user4@xxxx.com", "name":"xxxxxx"}],
           "bcc": [{"id": "test.user2@xxxx.com", "name":"xxxxxx"}],
           "subject":"Testing",
           "content":"Hello World"
      }'
 ```
+
+
+
+
+
+
+
 
    
   
@@ -97,8 +112,10 @@ This service exposes couple of APIs. The real requests that I used to test would
     
      
      
-#####Response
+##### Response
 
+- **email-store-id** The value of the field is used to check the status of the email in the subsequent API calls. 
+- **email-status** Succesful submission would be having the **ENQUEUED** status.
 ```
  {
     "message": "Email correctly enqueued.",
@@ -110,18 +127,21 @@ This service exposes couple of APIs. The real requests that I used to test would
 
 
 The system has the following set of Email Statuses.
-- PENDING - The state where the messages are stored before pushing it to a queue.
-- ENQUEUED - Indicates the messages are pushed to the queue and awaiting to be processed by a listener.
-- SENT - Indicates that the mail request has been successfully posted to a service provider.
-- DLC - Indicates that all the service providers have failed to post the message request. Hence has been moved to DLC queue.
+- **PENDING** - The state where the messages are stored before pushing it to a queue.
+- **ENQUEUED** - Indicates the messages are pushed to the queue and awaiting to be processed by a listener.
+- **SENT** - Indicates that the mail request has been successfully posted to a service provider.
+- **DLC** - Indicates that all the service providers have failed to post the message request. Hence has been moved to DLC queue.
 
 
 
-###API GET /email/status/{refId}
+### API GET /email/status/{refId}
    
 This is used to check the current database status of an already posted mail request.
 
-#####Request
+##### Request
+
+- **refId** - (**Mandatory URL Param**). Value obtained from **email-store-id** field should be used here.
+
 
 ```
     curl -X GET \
@@ -130,7 +150,7 @@ This is used to check the current database status of an already posted mail requ
 ```
 
      
-#####Response
+##### Response
 
 ```
 {
@@ -147,7 +167,7 @@ This is used to check the current database status of an already posted mail requ
 
     
 
-##TO DO.
+## TO DO.
 
 - Need to set up the micro-service against a RDS or NoSQL database.
 
