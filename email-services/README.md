@@ -111,7 +111,17 @@ This service exposes couple of APIs. The real requests that I used to test would
    
    
     
-     
+ **The JSON Payload would be as follow to be tested on a REST client.**
+
+```
+{
+    "to": [{"id": "admin@firzhan.com", "name":"firzhan007"}, {"id": "test.user3@firzhan.com", "name":"firzhan"}],
+    "bcc": [{"id": "test.user2@firzhan.com", "name":"firzhan007"}],
+    "subject":"Testing",
+    "content":"Hello World"
+}
+
+```    
      
 ##### Response
 
@@ -149,6 +159,10 @@ This is used to check the current database status of an already posted mail requ
     http://localhost:9001/email/status/1 \
      -H 'Accept: application/json' \
 ```
+
+
+
+
 
      
 ##### Response
