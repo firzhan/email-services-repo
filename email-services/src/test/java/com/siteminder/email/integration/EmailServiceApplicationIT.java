@@ -64,7 +64,7 @@ class EmailServiceApplicationIT {
                 + "-store-id");
 
         try {
-            TimeUnit.SECONDS.sleep(15);
+            TimeUnit.SECONDS.sleep(5);
         } catch (InterruptedException e) {
             log.error("Integration Test Thread sleep got interrupted", e);
         }

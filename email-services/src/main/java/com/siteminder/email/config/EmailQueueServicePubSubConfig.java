@@ -13,20 +13,6 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class EmailQueueServicePubSubConfig {
 
-	@Value("${cloud.aws.region.static}")
-	private String region;
-
-	@Value("${cloud.aws.queue.name}")
-	private String queueName;
-
-
-	
-	/*@Value("${cloud.aws.credentials.access-key}")
-	private String awsAccessKey;
-	
-	@Value("${cloud.aws.credentials.secret-key}")
-	private String awsSecretKey;
-*/
 	@Bean
 	public QueueMessagingTemplate queueMessagingTemplate(){
 		return new QueueMessagingTemplate(amazonSQSAsync());
@@ -34,7 +20,7 @@ public class EmailQueueServicePubSubConfig {
 
 	public AmazonSQSAsync amazonSQSAsync() {
 
-		return AmazonSQSAsyncClientBuilder.standard().withRegion(Regions.US_EAST_2).
+		return AmazonSQSAsyncClientBuilder.standard().
 				withCredentials(new AWSStaticCredentialsProvider(DefaultAWSCredentialsProviderChain.getInstance().getCredentials())).build();
 
 	}

@@ -37,7 +37,8 @@ class EmailSenderServiceTest {
     public void GivenEmailSenderServiceWithNoClients_WhenSendEmail_ThenReturnsFalse() {
 
         EmailSenderService emailSenderService =
-                new EmailSenderService(TestUtils.defaultCircuitBreakerRegistry(), TestUtils.defaultRetryRegistry(), emailStoreRepository);
+                new EmailSenderService(TestUtils.defaultCircuitBreakerRegistry(),
+                        TestUtils.defaultRetryRegistry(), emailStoreRepository);
 
         Assert.assertFalse(emailSenderService.send(1001L,
                 TestUtils.dummyEmailMessage()));

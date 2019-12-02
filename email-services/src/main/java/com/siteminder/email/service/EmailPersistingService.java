@@ -8,6 +8,8 @@ import com.siteminder.email.model.dto.EmailStore;
 import com.siteminder.email.model.request.InboundEmailMsg;
 import com.siteminder.email.model.state.EmailStatus;
 import com.siteminder.email.repo.EmailStoreRepository;
+import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.aws.messaging.core.QueueMessagingTemplate;
@@ -16,11 +18,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.logging.Logger;
 
+@Slf4j
 @Service
+@NoArgsConstructor
 public class EmailPersistingService {
-
-    private static final Logger log =
-            Logger.getLogger(EmailPersistingService.class.getName());
 
     @Autowired
     private QueueMessagingTemplate queueMessagingTemplate;
@@ -31,19 +32,18 @@ public class EmailPersistingService {
     @Value("${cloud.aws.end-point.uri}")
     private String sqsEndPoint;
 
-    public EmailPersistingService() {
-
-    }
+    @Autowired
+    private ObjectMapper objectMapper;
 
     public EmailStore push(InboundEmailMsg inboundEmailMsg) {
 
         EmailStore emailStore = new EmailStore();
 
         try {
-            emailStore.setContent(new ObjectMapper().writeValueAsString(inboundEmailMsg));
+            emailStore.setContent(objectMapper.writeValueAsString(inboundEmailMsg));
         } catch (JsonProcessingException e) {
             throw new EmailPayloadProcessingException("Invalid Payload " +
-                    "submitted for queueing.");
+                    "submitted for queueing.", e);
         }
         emailStore.setEmailStatus(EmailStatus.PENDING);
         emailStore = emailStoreRepository.save(emailStore);

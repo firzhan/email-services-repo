@@ -4,21 +4,17 @@ server:
 
 cloud:
   aws:
-    credentials:
-      access-key: <<ACCESS_KEY>>
-      secret-key: <<SECRET_KEY>>
-      useDefaultAwsCredentialsChain: true
     region:
       static: <<REGION>>
       auto: false
     stack:
       auto: false
     end-point:
-      uri: <<AWS_QUEUE_URL>>
+      uri: <<QUEUE_URI>>
     queue:
-      name: <AWS_QUEUE_NAME>
+      name: <<QUEUE_NAME>>
     dlc:
-      uri: <<AWS_DLC_QUEUE>>
+      uri: <<DLC_QUEUE_URI>>
 
 spring:
   datasource:
@@ -36,8 +32,18 @@ spring:
       path: /h2-console
 
 email-system-sender:
-  address: <<SENDER_ID>>
-  name: <<NAME>>
+  address: <<SYS_ADMIN_MAIL_ID>>
+  name: <<SYS_ADMIN_NAME>>
+
+email-service-provider:
+  mail-gun:
+    uri: <<MAIL_GUN_URI>>
+    username: <<MAIL_GUN_USERNAME>>
+    password: <<MAIL_GUN_PASSWORD>>
+
+  spark-post:
+    uri: <<SPARK_POST_URI>
+    authorization-code: <<SPARK_AUTHENTICATION_CODE>>
 
 resilience4j:
   circuit-breaker:

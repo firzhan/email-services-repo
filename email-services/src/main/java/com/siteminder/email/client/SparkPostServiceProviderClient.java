@@ -4,17 +4,16 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
+import com.siteminder.email.client.config.MailClientConfig;
 import com.siteminder.email.exception.EmailClientNotAvailableException;
 import com.siteminder.email.model.request.EmailAddress;
 import com.siteminder.email.model.request.InboundEmailMsg;
 import com.siteminder.email.service.EmailServiceProviderClient;
-import org.apache.http.HttpHeaders;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.util.List;
@@ -23,48 +22,53 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class SparkPostServiceProviderClient implements EmailServiceProviderClient {
 
-    private final static String uri = "https://api.sparkpost" + ".com/api/v1" +
-            "/transmissions";
-    private final static String authorizationCode =
-            "a0cea0220ee6ba0929532dcc3740c85e52cc8699";
+    private ObjectMapper objectMapper;
 
-    @Override
+    private RestTemplate restTemplate;
+
+    private MailClientConfig mailClientConfig;
+
+    public SparkPostServiceProviderClient(ObjectMapper objectMapper,
+                                          RestTemplate restTemplate,
+                                          MailClientConfig mailClientConfig) {
+        this.objectMapper = objectMapper;
+        this.restTemplate = restTemplate;
+        this.mailClientConfig = mailClientConfig;
+    }
+
     public boolean sendEmail(InboundEmailMsg inboundEmailMsg,
                              String systemSenderAddress,
                              String systemSenderName) {
 
-        HttpPost httpPost = new HttpPost(uri);
-        httpPost.setHeader("Authorization", authorizationCode);
-        httpPost.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Authorization", this.mailClientConfig.getSparkAuthCode());
 
-        StringEntity stringEntity = null;
         try {
-            stringEntity =
-                    new StringEntity(generateEntityPayload(inboundEmailMsg,
-                            systemSenderAddress));
-            httpPost.setEntity(stringEntity);
-            CloseableHttpClient httpClient = HttpClients.createDefault();
-            CloseableHttpResponse response = httpClient.execute(httpPost);
-            return response != null && response.getStatusLine().getStatusCode() == 200;
+            HttpEntity<String> request =
+                    new HttpEntity<>(generateEntityPayload(inboundEmailMsg,
+                            systemSenderAddress), headers);
+            ResponseEntity<String> response =
+                    restTemplate.postForEntity(this.mailClientConfig.getSparkPostURI(),
+                    request, String.class);
+            return response.getStatusCode().value() == 201 || response.getStatusCode().value() == 200;
         } catch (IOException e) {
             throw new EmailClientNotAvailableException("Spark Post Mail " +
                     "Services Not Available", e.getCause());
         }
-
     }
 
     private String generateEntityPayload(InboundEmailMsg inboundEmailMsg,
                                          String systemSenderAddress) throws JsonProcessingException {
 
-        ObjectMapper mapper = new ObjectMapper();
-        ObjectNode wrapperObjectNode = mapper.createObjectNode();
+        ObjectNode wrapperObjectNode = objectMapper.createObjectNode();
 
-        ObjectNode sandboxNode = mapper.createObjectNode();
+        ObjectNode sandboxNode = objectMapper.createObjectNode();
         sandboxNode.put("sandbox", true);
 
         wrapperObjectNode.set("options", sandboxNode);
 
-        ObjectNode contentsNode = mapper.createObjectNode();
+        ObjectNode contentsNode = objectMapper.createObjectNode();
         wrapperObjectNode.set("content", contentsNode);
         Optional<List<EmailAddress>> optionalEmailAddressList =
                 Optional.ofNullable(inboundEmailMsg.getCc());
@@ -81,7 +85,7 @@ public class SparkPostServiceProviderClient implements EmailServiceProviderClien
                     }
                 });
 
-                ObjectNode ccNode = mapper.createObjectNode();
+                ObjectNode ccNode = objectMapper.createObjectNode();
                 ccNode.put("CC", ccBuilder.toString());
 
                 contentsNode.set("headers", ccNode);
@@ -93,19 +97,19 @@ public class SparkPostServiceProviderClient implements EmailServiceProviderClien
         contentsNode.put("subject", inboundEmailMsg.getSubject());
         contentsNode.put("text", inboundEmailMsg.getContent());
 
-        ArrayNode recipientArrayNode = mapper.createArrayNode();
+        ArrayNode recipientArrayNode = objectMapper.createArrayNode();
         wrapperObjectNode.set("recipients", recipientArrayNode);
 
         populateRecipients(Optional.ofNullable(inboundEmailMsg.getTo()),
-                mapper, systemSenderAddress, recipientArrayNode);
+                objectMapper, systemSenderAddress, recipientArrayNode);
 
         populateRecipients(Optional.ofNullable(inboundEmailMsg.getCc()),
-                mapper, systemSenderAddress, recipientArrayNode);
+                objectMapper, systemSenderAddress, recipientArrayNode);
 
         populateRecipients(Optional.ofNullable(inboundEmailMsg.getBcc()),
-                mapper, systemSenderAddress, recipientArrayNode);
+                objectMapper, systemSenderAddress, recipientArrayNode);
 
-        return mapper.writeValueAsString(wrapperObjectNode);
+        return objectMapper.writeValueAsString(wrapperObjectNode);
     }
 
     private void populateRecipients(Optional<List<EmailAddress>> optionalEmailAddressList, ObjectMapper mapper, String systemSenderAddress, ArrayNode recipientArrayNode) {

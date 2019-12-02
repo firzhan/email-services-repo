@@ -12,6 +12,7 @@ import com.siteminder.email.model.response.ResponseMsg;
 import com.siteminder.email.model.state.EmailStatus;
 import com.siteminder.email.service.EmailPersistingService;
 import com.siteminder.email.util.EmailServiceUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,12 +34,10 @@ import java.time.ZonedDateTime;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 
+@Slf4j
 @RestController
 @RequestMapping("/email")
 public class EmailServiceController {
-
-    private static final Logger log =
-            LoggerFactory.getLogger(EmailServiceController.class);
 
     @Autowired
     private QueueMessagingTemplate queueMessagingTemplate;
@@ -49,20 +48,26 @@ public class EmailServiceController {
     @Value("${cloud.aws.end-point.uri}")
     private String sqsEndPoint;
 
+    private boolean isDebugEnabled = log.isDebugEnabled();
+
     @PostMapping(value = "/submit", produces =
             MediaType.APPLICATION_JSON_VALUE, consumes =
             MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ResponseMsg> submit(@Valid @RequestBody InboundEmailMsg inboundEmailMsg, Errors errors) {
 
+        if(isDebugEnabled)
+            log.debug("Incoming Payload for submission : " + inboundEmailMsg.toString());
+
         if (errors.hasErrors()) {
             throw new EmailPayloadProcessingException(errors.getAllErrors().get(0).getDefaultMessage());
         }
 
-        if (!EmailServiceUtils.isValidEmail(inboundEmailMsg)) {
+        //This validation part is eliminated by introducing javax.validation
+     /*   if (!EmailServiceUtils.isValidEmail(inboundEmailMsg)) {
             throw new EmailPayloadProcessingException("Email address should " +
                     "be in the correct format.");
 
-        }
+        }*/
 
         EmailStore emailStore =
                 emailPersistingService.push(inboundEmailMsg);

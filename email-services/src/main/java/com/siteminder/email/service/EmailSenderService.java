@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.siteminder.email.client.MailGunServiceProviderClient;
 import com.siteminder.email.client.SparkPostServiceProviderClient;
+import com.siteminder.email.client.config.MailClientConfig;
 import com.siteminder.email.model.dto.EmailStore;
 import com.siteminder.email.model.request.InboundEmailMsg;
 import com.siteminder.email.model.state.EmailStatus;
@@ -22,6 +23,7 @@ import org.springframework.cloud.aws.messaging.listener.annotation.SqsListener;
 import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -54,7 +56,14 @@ public class EmailSenderService  {
     @Autowired
     private QueueMessagingTemplate queueMessagingTemplate;
 
+    @Autowired
+    private ObjectMapper objectMapper;
 
+    @Autowired
+    RestTemplate restTemplate;
+
+    @Autowired
+    MailClientConfig mailClientConfig;
 
     public EmailSenderService(CircuitBreakerRegistry circuitBreakerRegistry,
                               RetryRegistry retryRegistry,
@@ -69,7 +78,11 @@ public class EmailSenderService  {
         emailServiceProviderClients.add(emailServiceProviderClient);
     }
 
-
+    /**
+     * Continuously polls the queue to fetch any pending requests.
+     * @param id
+     * @param header
+     */
     @SqsListener(value = "${cloud.aws.queue.name}", deletionPolicy =
             SqsMessageDeletionPolicy.ON_SUCCESS)
     public void consumeMessage(String id,
@@ -82,7 +95,7 @@ public class EmailSenderService  {
 
             try {
                 if(!send(emailStore.getId(),
-                        new ObjectMapper().readValue(emailStoreOptional.get().getContent(),
+                        objectMapper.readValue(emailStoreOptional.get().getContent(),
                         InboundEmailMsg.class))){
                     log.error("Email Sending " +
                             "Failed for the email : " + emailStore.toString());
@@ -90,7 +103,7 @@ public class EmailSenderService  {
                 }
             } catch (JsonProcessingException e) {
                 log.error("Processing the request failed for the content : "
-                        + emailStoreOptional.get().getContent());
+                        + emailStoreOptional.get().getContent(), e);
             }
         });
 
@@ -107,8 +120,8 @@ public class EmailSenderService  {
             String emailSPName =
                     emailServiceProviderClient.getClass().getSimpleName();
 
-            log.info(String.format("EmailSenderService: trying sending email " +
-                    "from %s.", emailSPName));
+            log.debug(String.format("EmailSenderService: Attempt to send " +
+                    "mail from %s.", emailSPName));
 
             CircuitBreaker circuitBreaker = circuitBreakerRegistry.
                     circuitBreaker(emailServiceProviderClient.getClass().getSimpleName());
@@ -120,44 +133,43 @@ public class EmailSenderService  {
 
             supplier = Retry.decorateSupplier(retry, supplier);
 
-            Boolean clientResponse =
-                    Try.ofSupplier(supplier).recover(throwable -> false).get();
-            if (clientResponse) {
+            if (Try.ofSupplier(supplier).recover(throwable -> false).get()) {
 
                 emailStoreOptional.ifPresent( emailStore -> {
                     emailStore.setEmailStatus(EmailStatus.SENT);
                     emailStoreRepository.save(emailStore);
                 });
+                log.debug(String.format("EmailSenderService: Mail is posted " +
+                        "successfully to the Mail Service Provider %s.",
+                        emailSPName));
                 return true;
             }
         }
-/*
-
-        //handle failed scenario
-        emailStoreOptional.ifPresent(emailStore -> {
-            if(emailStore.getEmailStatus() != EmailStatus.SENT)
-            log.error("Email Sending " +
-                "Failed for the email : " + emailStore.toString());
-            movedToDLC(emailStore);
-        });
-*/
-
         return false;
     }
 
-    private void movedToDLC(EmailStore emailStore){
-        //TODO
-        emailStore.setEmailStatus(EmailStatus.DLC);
+    /**
+     * This method basically stores the failed messages into a DLC queue.
+     * This method could be improved with retry mechanism to send the message
+     * to the service providers.
+     * @param emailStore Object to be moved to the DLC with the new email status
+     */
 
-        //Add the DLC part
+    private void movedToDLC(EmailStore emailStore){
+        emailStore.setEmailStatus(EmailStatus.DLC);
         queueMessagingTemplate.send(sqsDlsEndPoint,
                 MessageBuilder.withPayload(emailStore.getId()).build());
+        emailStoreRepository.save(emailStore);
+
 
     }
 
+    /**
+     * A new client has to be added here
+     */
     @PostConstruct
     private void initEmailClients() {
-        emailServiceProviderClients.add(new MailGunServiceProviderClient());
-        emailServiceProviderClients.add(new SparkPostServiceProviderClient());
+        addEmailClient(new MailGunServiceProviderClient(objectMapper, restTemplate, mailClientConfig));
+        addEmailClient(new SparkPostServiceProviderClient(objectMapper, restTemplate, mailClientConfig));
     }
 }
